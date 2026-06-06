@@ -44,7 +44,7 @@ jobs:
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
               StudentName=Daniel-Leon \
-              SecurityStackName=SecurityGroups-Fernando-Benavides
+              SecurityStackName=SecurityGroups-Daniel-Leon
 
       - name: Deploy Automation Stack
         run: |
