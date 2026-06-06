@@ -4,7 +4,7 @@ Description: Stack 2 - Static EC2 with Elastic IP and Apache
 Parameters:
   StudentName:
     Type: String
-    Default: Fernando-Benavides
+    Default: Daniel-Leon, Joseph-Arevalo
 
   SecurityStackName:
     Type: String
