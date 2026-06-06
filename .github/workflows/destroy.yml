@@ -18,26 +18,26 @@ jobs:
       - name: Destroy Automation Stack
         run: |
           aws cloudformation delete-stack \
-            --stack-name Automation-Fernando-Benavides
+            --stack-name Automation-Daniel-Leon
 
           aws cloudformation wait stack-delete-complete \
-            --stack-name Automation-Fernando-Benavides
+            --stack-name Automation-Daniel-Leon
 
       - name: Destroy ALB-ASG Stack
         run: |
           aws cloudformation delete-stack \
-            --stack-name ALB-ASG-Fernando-Benavides
+            --stack-name ALB-ASG-Daniel-Leon
 
           aws cloudformation wait stack-delete-complete \
-            --stack-name ALB-ASG-Fernando-Benavides
+            --stack-name ALB-ASG-Daniel-Leon
 
       - name: Destroy EC2 Stack
         run: |
           aws cloudformation delete-stack \
-            --stack-name EC2-Fernando-Benavides
+            --stack-name EC2-Daniel-Leon
 
           aws cloudformation wait stack-delete-complete \
-            --stack-name EC2-Fernando-Benavides
+            --stack-name EC2-Daniel-Leon
 
       - name: Destroy Security Stack
         run: |
