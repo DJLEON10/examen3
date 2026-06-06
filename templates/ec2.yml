@@ -8,7 +8,7 @@ Parameters:
 
   SecurityStackName:
     Type: String
-    Default: SecurityGroups-Fernando-Benavides
+    Default: SecurityGroups-Daniel-Leon
 
   LatestAmazonLinuxAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
