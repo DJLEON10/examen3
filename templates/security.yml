@@ -4,7 +4,7 @@ Description: Stack 1 - Security, VPC, Subnets and Security Groups
 Parameters:
   StudentName:
     Type: String
-    Default: Fernando-Benavides
+    Default: Daniel-Leon
 
 Resources:
 
