@@ -4,15 +4,15 @@ Description: Stack 4 - Scheduled Actions and Launch Template Version 2
 Parameters:
   StudentName:
     Type: String
-    Default: Fernando-Benavides
+    Default:Daniel-Leon
 
   SecurityStackName:
     Type: String
-    Default: SecurityGroups-Fernando-Benavides
+    Default: SecurityGroups-Daniel-Leon
 
   AlbAsgStackName:
     Type: String
-    Default: ALB-ASG-Fernando-Benavides
+    Default: ALB-ASG-Daniel-Leon
 
   LatestAmazonLinuxAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
