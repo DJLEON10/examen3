@@ -21,38 +21,38 @@ jobs:
       - name: Deploy Security Stack
         run: |
           aws cloudformation deploy \
-            --stack-name SecurityGroups-Fernando-Benavides \
+            --stack-name SecurityGroups-Daniel-Leon \
             --template-file templates/security.yml \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides StudentName=Fernando-Benavides
+            --parameter-overrides StudentName=Daniel-Leon
 
       - name: Deploy EC2 Stack
         run: |
           aws cloudformation deploy \
-            --stack-name EC2-Fernando-Benavides \
+            --stack-name EC2-Daniel-Leon \
             --template-file templates/ec2.yml \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
-              StudentName=Fernando-Benavides \
-              SecurityStackName=SecurityGroups-Fernando-Benavides
+              StudentName=Daniel-Leon \
+              SecurityStackName=SecurityGroups-Daniel-Leon
 
       - name: Deploy ALB-ASG Stack
         run: |
           aws cloudformation deploy \
-            --stack-name ALB-ASG-Fernando-Benavides \
+            --stack-name ALB-ASG-Daniel-Leon \
             --template-file templates/alb-asg.yml \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
-              StudentName=Fernando-Benavides \
+              StudentName=Daniel-Leon \
               SecurityStackName=SecurityGroups-Fernando-Benavides
 
       - name: Deploy Automation Stack
         run: |
           aws cloudformation deploy \
-            --stack-name Automation-Fernando-Benavides \
+            --stack-name AutomationDaniel-Leon \
             --template-file templates/automation.yml \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
-              StudentName=Fernando-Benavides \
-              SecurityStackName=SecurityGroups-Fernando-Benavides \
-              AlbAsgStackName=ALB-ASG-Fernando-Benavides
+              StudentName=Daniel-Leon \
+              SecurityStackName=SecurityGroups-Daniel-Leon \
+              AlbAsgStackName=ALB-ASG-Daniel-Leon
