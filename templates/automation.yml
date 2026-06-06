@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Stack 4 - Scheduled Actions and Launch Template Version 2
+
+Parameters:
+  StudentName:
+    Type: String
+    Default: Fernando-Benavides
+
+  SecurityStackName:
+    Type: String
+    Default: SecurityGroups-Fernando-Benavides
+
+  AlbAsgStackName:
+    Type: String
+    Default: ALB-ASG-Fernando-Benavides
+
+  LatestAmazonLinuxAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+
+  LaunchTemplateV2:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub LT-V2-${StudentName}
+      LaunchTemplateData:
+        ImageId: !Ref LatestAmazonLinuxAmi
+        InstanceType: t3.micro
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub ${SecurityStackName}-EC2SecurityGroupId
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            dnf update -y
+            dnf install -y httpd
+            systemctl enable httpd
+            systemctl start httpd
+
+            echo "<h1>Aplicacion actualizada con Launch Template Version 2</h1>" > /var/www/html/index.html
+            echo "<h2>Estudiante: ${StudentName}</h2>" >> /var/www/html/index.html
+            echo "<p>Instancia creada usando el segundo Launch Template.</p>" >> /var/www/html/index.html
+
+  ScheduledScaleUpMorning:
+    Type: AWS::AutoScaling::ScheduledAction
+    Properties:
+      AutoScalingGroupName:
+        Fn::ImportValue: !Sub ${AlbAsgStackName}-AutoScalingGroupName
+      ScheduledActionName: !Sub ScaleUpMorning-${StudentName}
+      MinSize: 2
+      MaxSize: 4
+      DesiredCapacity: 3
+      Recurrence: "0 13 * * *"
+
+  ScheduledScaleUpAfternoon:
+    Type: AWS::AutoScaling::ScheduledAction
+    Properties:
+      AutoScalingGroupName:
+        Fn::ImportValue: !Sub ${AlbAsgStackName}-AutoScalingGroupName
+      ScheduledActionName: !Sub ScaleUpAfternoon-${StudentName}
+      MinSize: 2
+      MaxSize: 4
+      DesiredCapacity: 4
+      Recurrence: "0 18 * * *"
+
+  ScheduledScaleDownNight:
+    Type: AWS::AutoScaling::ScheduledAction
+    Properties:
+      AutoScalingGroupName:
+        Fn::ImportValue: !Sub ${AlbAsgStackName}-AutoScalingGroupName
+      ScheduledActionName: !Sub ScaleDownNight-${StudentName}
+      MinSize: 1
+      MaxSize: 4
+      DesiredCapacity: 2
+      Recurrence: "0 23 * * *"
+
+  ScheduledScaleDownLateNight:
+    Type: AWS::AutoScaling::ScheduledAction
+    Properties:
+      AutoScalingGroupName:
+        Fn::ImportValue: !Sub ${AlbAsgStackName}-AutoScalingGroupName
+      ScheduledActionName: !Sub ScaleDownLateNight-${StudentName}
+      MinSize: 1
+      MaxSize: 4
+      DesiredCapacity: 1
+      Recurrence: "0 4 * * *"
+
+Outputs:
+
+  LaunchTemplateV2Id:
+    Description: Launch Template Version 2 ID
+    Value: !Ref LaunchTemplateV2
+
+  ScheduledActions:
+    Description: Scheduled actions created
+    Value: Four scheduled actions created successfully

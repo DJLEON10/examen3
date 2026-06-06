@@ -1,0 +1,58 @@
+name: Deploy CloudFormation Stacks
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy Security Stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name SecurityGroups-Fernando-Benavides \
+            --template-file templates/security.yml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides StudentName=Fernando-Benavides
+
+      - name: Deploy EC2 Stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name EC2-Fernando-Benavides \
+            --template-file templates/ec2.yml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              StudentName=Fernando-Benavides \
+              SecurityStackName=SecurityGroups-Fernando-Benavides
+
+      - name: Deploy ALB-ASG Stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name ALB-ASG-Fernando-Benavides \
+            --template-file templates/alb-asg.yml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              StudentName=Fernando-Benavides \
+              SecurityStackName=SecurityGroups-Fernando-Benavides
+
+      - name: Deploy Automation Stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name Automation-Fernando-Benavides \
+            --template-file templates/automation.yml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              StudentName=Fernando-Benavides \
+              SecurityStackName=SecurityGroups-Fernando-Benavides \
+              AlbAsgStackName=ALB-ASG-Fernando-Benavides

@@ -1,0 +1,48 @@
+name: Destroy CloudFormation Stacks
+
+on:
+  workflow_dispatch:
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Destroy Automation Stack
+        run: |
+          aws cloudformation delete-stack \
+            --stack-name Automation-Fernando-Benavides
+
+          aws cloudformation wait stack-delete-complete \
+            --stack-name Automation-Fernando-Benavides
+
+      - name: Destroy ALB-ASG Stack
+        run: |
+          aws cloudformation delete-stack \
+            --stack-name ALB-ASG-Fernando-Benavides
+
+          aws cloudformation wait stack-delete-complete \
+            --stack-name ALB-ASG-Fernando-Benavides
+
+      - name: Destroy EC2 Stack
+        run: |
+          aws cloudformation delete-stack \
+            --stack-name EC2-Fernando-Benavides
+
+          aws cloudformation wait stack-delete-complete \
+            --stack-name EC2-Fernando-Benavides
+
+      - name: Destroy Security Stack
+        run: |
+          aws cloudformation delete-stack \
+            --stack-name SecurityGroups-Fernando-Benavides
+
+          aws cloudformation wait stack-delete-complete \
+            --stack-name SecurityGroups-Fernando-Benavides

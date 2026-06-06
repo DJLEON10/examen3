@@ -1,0 +1,168 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Stack 3 - ALB, Target Group, Launch Template, ASG and Warm Pool
+
+Parameters:
+  StudentName:
+    Type: String
+    Default: Fernando-Benavides
+
+  SecurityStackName:
+    Type: String
+    Default: SecurityGroups-Fernando-Benavides
+
+  LatestAmazonLinuxAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+
+  WebTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub TG-${StudentName}
+      VpcId:
+        Fn::ImportValue: !Sub ${SecurityStackName}-VpcId
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: traffic-port
+      Matcher:
+        HttpCode: 200
+      Tags:
+        - Key: Name
+          Value: !Sub TG-${StudentName}
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ALB-${StudentName}
+      Scheme: internet-facing
+      Type: application
+      IpAddressType: ipv4
+      SecurityGroups:
+        - Fn::ImportValue: !Sub ${SecurityStackName}-ALBSecurityGroupId
+      Subnets:
+        - Fn::ImportValue: !Sub ${SecurityStackName}-PublicSubnet1
+        - Fn::ImportValue: !Sub ${SecurityStackName}-PublicSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub ALB-${StudentName}
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref WebTargetGroup
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub LT-${StudentName}
+      LaunchTemplateData:
+        ImageId: !Ref LatestAmazonLinuxAmi
+        InstanceType: t3.micro
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub ${SecurityStackName}-EC2SecurityGroupId
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            dnf update -y
+            dnf install -y httpd
+            systemctl enable httpd
+            systemctl start httpd
+
+            TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
+              -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+
+            INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" \
+              -s http://169.254.169.254/latest/meta-data/instance-id)
+
+            cat <<EOF > /var/www/html/index.html
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>ALB ASG - ${StudentName}</title>
+            </head>
+            <body>
+              <h1>Aplicacion Web desde Auto Scaling Group</h1>
+              <h2>Estudiante: ${StudentName}</h2>
+              <p>Instancia creada automaticamente por Launch Template.</p>
+              <p>Instance ID: $INSTANCE_ID</p>
+              <p>Version del Launch Template: 1</p>
+            </body>
+            </html>
+            EOF
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub ASG-Instance-${StudentName}
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn: ALBListener
+    Properties:
+      AutoScalingGroupName: !Sub ASG-${StudentName}
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub ${SecurityStackName}-PublicSubnet1
+        - Fn::ImportValue: !Sub ${SecurityStackName}-PublicSubnet2
+      MinSize: '1'
+      MaxSize: '4'
+      DesiredCapacity: '2'
+      TargetGroupARNs:
+        - !Ref WebTargetGroup
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 120
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: !Sub ASG-${StudentName}
+          PropagateAtLaunch: true
+
+  WarmPool:
+    Type: AWS::AutoScaling::WarmPool
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PoolState: Stopped
+      MinSize: 1
+      MaxGroupPreparedCapacity: 3
+
+Outputs:
+
+  LoadBalancerDNS:
+    Description: Public DNS of the Application Load Balancer
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+
+  LoadBalancerURL:
+    Description: Public URL of the Application Load Balancer
+    Value: !Sub http://${ApplicationLoadBalancer.DNSName}
+
+  TargetGroupArn:
+    Description: Target Group ARN
+    Value: !Ref WebTargetGroup
+
+  LaunchTemplateId:
+    Description: Launch Template ID
+    Value: !Ref LaunchTemplate
+    Export:
+      Name: !Sub ${AWS::StackName}-LaunchTemplateId
+
+  LaunchTemplateName:
+    Description: Launch Template Name
+    Value: !Sub LT-${StudentName}
+    Export:
+      Name: !Sub ${AWS::StackName}-LaunchTemplateName
+
+  AutoScalingGroupName:
+    Description: Auto Scaling Group Name
+    Value: !Ref AutoScalingGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-AutoScalingGroupName

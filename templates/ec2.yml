@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Stack 2 - Static EC2 with Elastic IP and Apache
+
+Parameters:
+  StudentName:
+    Type: String
+    Default: Fernando-Benavides
+
+  SecurityStackName:
+    Type: String
+    Default: SecurityGroups-Fernando-Benavides
+
+  LatestAmazonLinuxAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+
+  StaticEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmazonLinuxAmi
+      InstanceType: t3.micro
+      KeyName: !Ref AWS::NoValue
+      SubnetId:
+        Fn::ImportValue: !Sub ${SecurityStackName}-PublicSubnet1
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub ${SecurityStackName}-EC2SecurityGroupId
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          dnf update -y
+          dnf install -y httpd
+          systemctl enable httpd
+          systemctl start httpd
+
+          cat <<EOF > /var/www/html/index.html
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>EC2 Estatica - ${StudentName}</title>
+          </head>
+          <body>
+            <h1>EC2 Estatica funcionando correctamente</h1>
+            <h2>Estudiante: ${StudentName}</h2>
+            <p>Instancia Amazon Linux desplegada con CloudFormation.</p>
+            <p>Apache instalado automaticamente mediante UserData.</p>
+          </body>
+          </html>
+          EOF
+      Tags:
+        - Key: Name
+          Value: !Sub EC2-${StudentName}
+
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub EIP-${StudentName}
+
+  ElasticIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref StaticEC2Instance
+      AllocationId: !GetAtt ElasticIP.AllocationId
+
+Outputs:
+
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref StaticEC2Instance
+
+  ElasticIP:
+    Description: Static Elastic IP
+    Value: !Ref ElasticIP
+
+  WebsiteURL:
+    Description: Public website URL
+    Value: !Sub http://${ElasticIP}
+
+  PublicDNS:
+    Description: Public DNS of EC2
+    Value: !GetAtt StaticEC2Instance.PublicDnsName
